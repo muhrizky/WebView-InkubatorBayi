@@ -2,51 +2,96 @@ package id.ac.undip.ce.student.muhammadrizqi.inkubatorbayi;
 
 
 import android.annotation.SuppressLint;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 
-public class MainActivity extends AppCompatActivity {
-    WebView view;
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
+    SwipeRefreshLayout swipeRefreshLayout;
+    WebView webView;
+    WebSettings webSettings;
 
+    String URL = "http://web.box-of-life.online";
 
-
-    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        WebView view = this.findViewById(R.id.webview);
-        view.getSettings().setJavaScriptEnabled(true);
-        view.getSettings().setAllowFileAccessFromFileURLs(true);
-        view.getSettings().setAllowUniversalAccessFromFileURLs(true);
-        view.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-        view.getSettings().getAllowContentAccess();
-        view.getSettings().setSupportMultipleWindows(true);
-        view.getSettings().setDomStorageEnabled(true);
-        view.setWebViewClient(new MyBrowser());
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        webView = (WebView) findViewById(R.id.webview);
 
-        view.loadUrl("http://web.box-of-life.online/");
-        view.setWebChromeClient(new WebChromeClient());
+        swipeRefreshLayout.setOnRefreshListener(this);
+
+        webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true); // Untuk mengaktifkan javascript
+        webSettings.getUseWideViewPort();
+
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                // Menampilkan loading ketika webview proses load halaman
+                swipeRefreshLayout.setRefreshing(true);
+            }
+        });
+
+        webView.setWebViewClient(new WebViewClient() {
+            // Ketika webview error atau selesai load page loading akan dismiss
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+        });
+
+        if (savedInstanceState == null) {
+            webView.loadUrl(URL);
+        }
+
     }
 
-    private class MyBrowser extends WebViewClient {
-        @Override
-        public boolean shouldOverrideUrlLoading(WebView view, String url){
-            view.loadUrl(url);
-            return true;
+    @Override
+    protected void onSaveInstanceState(Bundle outState)
+    {
+        //konfig untuk menyimpan state agar tidak kerefresh
+        super.onSaveInstanceState(outState);
+        webView.saveState(outState);
+    }
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState)
+    {
+        //menyesuaikan state terahir tanpa refresh halaman
+        super.onRestoreInstanceState(savedInstanceState);
+        webView.restoreState(savedInstanceState);
+    }
+
+    @Override
+    public void onRefresh() {
+        // Untuk refresh webview dengan swipe
+        webView.reload();
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Jika Webview bisa di back maka backward page sebelumnya
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            finish();
+            System.exit(0);
         }
     }
-//    public boolean onKeyDown(int keycode, KeyEvent event){
-//        if((keycode== KeyEvent.KEYCODE_BACK)&& view.canGoBack()){
-//            view.goBack();
-//            return  true;
-//        }
-//        return super.onKeyDown(keycode, event);
-//    }
 
 }
